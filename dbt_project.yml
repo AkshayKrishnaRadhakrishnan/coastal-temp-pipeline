@@ -1,0 +1,20 @@
+name: coastal_temp
+version: "1.0.0"
+config-version: 2
+profile: coastal_temp
+
+model-paths: ["models"]
+test-paths: ["tests"]
+
+vars:
+  high_temp_threshold_c: 5
+  low_temp_threshold_c: -10
+  min_valid_temp_c: -60
+  max_valid_temp_c: 60
+
+models:
+  coastal_temp:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

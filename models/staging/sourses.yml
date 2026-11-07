@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Untouched data loaded by ingest/ingest.py.
+    tables:
+      - name: hourly_temperature
+        description: Hourly temperature readings per location. Append-only, so duplicates are expected.
+        columns:
+          - name: location
+            tests:
+              - not_null
+          - name: observed_at
+            tests:
+              - not_null

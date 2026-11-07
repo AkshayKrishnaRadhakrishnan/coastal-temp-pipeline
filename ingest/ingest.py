@@ -1,5 +1,10 @@
 import time
 import requests
+import json
+import os
+from datetime import datetime, timezone
+
+import duckdb
 
 LOCATIONS = {
     "saint_john": (45.2733, -66.0633),
@@ -38,9 +43,41 @@ def to_rows(name, lat, lon, data):
         rows.append((name, lat, lon, t, temp))
     return rows
 
+def save_raw(name, data):
+    os.makedirs("data/raw", exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    path = f"data/raw/{name}_{stamp}.json"
+    with open(path, "w") as f:
+        json.dump(data, f)
+    return path
+
+def load_rows(rows):
+    os.makedirs("data", exist_ok=True)
+    con = duckdb.connect("data/warehouse.duckdb")
+    con.execute("create schema if not exists raw")
+    con.execute("""
+        create table if not exists raw.hourly_temperature (
+            location varchar,
+            latitude double,
+            longitude double,
+            observed_at varchar,
+            temperature_c double,
+            loaded_at timestamp
+        )
+    """)
+    loaded_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    con.executemany(
+        "insert into raw.hourly_temperature values (?, ?, ?, ?, ?, ?)",
+        [row + (loaded_at,) for row in rows],
+    )
+    con.close()
+
+
 if __name__ == "__main__":
+    all_rows = []
     for name, (lat, lon) in LOCATIONS.items():
         data = fetch_location(name, lat, lon)
-        rows = to_rows(name, lat, lon, data)
-        nulls = sum(1 for r in rows if r[4] is None)
-        print(name, "rows:", len(rows), "nulls:", nulls)
+        save_raw(name, data)
+        all_rows.extend(to_rows(name, lat, lon, data))
+    load_rows(all_rows)
+    print("loaded rows:", len(all_rows))

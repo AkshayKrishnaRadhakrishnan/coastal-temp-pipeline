@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: daily_temperature_summary
+    description: Daily min, max and average temperature per location, with alert flags.
+    columns:
+      - name: location
+        tests:
+          - not_null
+      - name: reading_date
+        tests:
+          - not_null
+      - name: readings
+        description: Number of hourly readings that day. Less than 24 means missing data.
